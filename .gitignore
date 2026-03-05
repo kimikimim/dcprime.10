@@ -1,0 +1,25 @@
+node_modules/
+
+# 환경변수 (API 키 등 절대 커밋 금지)
+.env
+
+# DB / 세션 (학생 데이터는 각 환경에서 seed.js로 생성)
+database/*.json
+database/sessions/
+database/*.db
+
+# R / 에디터 임시파일
+.Rhistory
+.Rdata
+*.swp
+
+# 업로드 이미지
+public/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
+npm-debug.log*

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC Prime — 원장</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="admin-body">
+
+  <!-- 헤더 -->
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <div class="admin-header-left">
+        <div class="logo-mark logo-mark--sm">
+          <svg width="16" height="16" viewBox="0 0 28 28" fill="none">
+            <path d="M7 9h14M7 14h10M7 19h12" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <span class="admin-title-text">DC Prime</span>
+          <span class="admin-badge">원장</span>
+        </div>
+      </div>
+      <div class="admin-header-right">
+        <span class="admin-name" id="adminName">신성호 원장</span>
+        <button class="icon-btn" id="logoutBtn" title="로그아웃">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 탭 바 -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="attendance">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        출석 관리
+      </button>
+      <button class="tab-btn" data-tab="study">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        학습 현황
+      </button>
+      <button class="tab-btn" data-tab="analysis">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        장단점 분석
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════ 출석 관리 탭 ═══════════════ -->
+  <div class="tab-panel active" id="tabAttendance">
+    <div class="admin-panel">
+
+      <!-- 출석 툴바 -->
+      <div class="panel-toolbar">
+        <div class="toolbar-left">
+          <button class="icon-btn-sm" id="weekPrev" title="이전 주">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <span class="toolbar-date" id="weekLabel">로딩 중...</span>
+          <button class="icon-btn-sm" id="weekNext" title="다음 주">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <button class="btn-ghost-sm" id="todayBtn">오늘</button>
+        </div>
+        <div class="toolbar-right">
+          <label class="btn-ghost-sm btn-import" for="importExcel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            가져오기
+          </label>
+          <input type="file" id="importExcel" accept=".xlsx,.xls" hidden />
+          <button class="btn-primary-sm" id="exportExcel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            내보내기
+          </button>
+        </div>
+      </div>
+
+      <!-- 출석 범례 -->
+      <div class="attendance-legend">
+        <span class="legend-item"><span class="status-dot status-present"></span>출석</span>
+        <span class="legend-item"><span class="status-dot status-absent"></span>결석</span>
+        <span class="legend-item"><span class="status-dot status-late"></span>지각</span>
+        <span class="legend-item"><span class="status-dot status-none"></span>미체크</span>
+        <span class="legend-hint">셀을 탭하여 상태 변경</span>
+      </div>
+
+      <!-- 출석 테이블 -->
+      <div class="attendance-table-wrap">
+        <table class="attendance-table" id="attendanceTable">
+          <thead id="attendanceHead"></thead>
+          <tbody id="attendanceBody"></tbody>
+        </table>
+      </div>
+
+      <p class="panel-note" id="importMsg"></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 학습 현황 탭 ═══════════════ -->
+  <div class="tab-panel" id="tabStudy">
+    <div class="admin-panel">
+
+      <div class="panel-toolbar">
+        <div class="toolbar-left">
+          <select class="select-input" id="studyStudentFilter">
+            <option value="">전체 학생</option>
+          </select>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn-primary-sm" id="refreshStudyBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            새로고침
+          </button>
+        </div>
+      </div>
+
+      <!-- 학생별 요약 카드 -->
+      <div class="student-summary-cards" id="studySummaryCards"></div>
+
+      <!-- 상세 로그 -->
+      <h3 class="section-subtitle">전체 학습 기록</h3>
+      <div class="study-log-list" id="studyLogList">
+        <p class="empty-text">학습 인증 기록이 없습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 장단점 분석 탭 ═══════════════ -->
+  <div class="tab-panel" id="tabAnalysis">
+    <div class="admin-panel">
+
+      <div class="analysis-header">
+        <h2 class="analysis-page-title">🎓 학생별 AI 분석</h2>
+        <p class="analysis-page-desc">학습 인증 및 채팅 기록을 바탕으로 AI가 학생의 강점과 약점을 분석합니다.</p>
+      </div>
+
+      <!-- 학생 선택 카드 -->
+      <div class="student-select-grid" id="studentSelectGrid">
+        <p class="empty-text">학생 데이터를 불러오는 중...</p>
+      </div>
+
+      <!-- 분석 결과 -->
+      <div class="analysis-result-panel" id="analysisResultPanel" style="display:none">
+        <div class="analysis-result-header">
+          <div>
+            <h3 class="analysis-student-name" id="analysisStudentName">—</h3>
+            <p class="analysis-generated-at" id="analysisGeneratedAt">—</p>
+          </div>
+          <button class="btn-primary-sm" id="reAnalyzeBtn">재분석</button>
+        </div>
+        <div class="analysis-content" id="analysisContent"></div>
+      </div>
+
+      <div class="analysis-loading" id="analysisLoading" style="display:none">
+        <div class="loading-spinner loading-spinner--lg"></div>
+        <p>AI가 분석 중입니다...<br /><small>보통 10~20초 소요됩니다</small></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

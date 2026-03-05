@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC Prime</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="login-body">
+  <div class="login-container">
+
+    <div class="login-logo">
+      <div class="logo-mark">
+        <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+          <path d="M7 9h14M7 14h10M7 19h12" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">DC Prime</span>
+    </div>
+
+    <div class="login-header">
+      <h1 class="login-title">비밀번호를<br />입력하세요</h1>
+      <p class="login-subtitle">4자리 번호를 눌러주세요</p>
+    </div>
+
+    <div class="pin-display" id="pinDisplay">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+    </div>
+
+    <p class="error-message" id="errorMsg"></p>
+
+    <div class="numpad">
+      <button class="numpad-btn" data-num="1">1</button>
+      <button class="numpad-btn" data-num="2">2<span class="numpad-sub">ABC</span></button>
+      <button class="numpad-btn" data-num="3">3<span class="numpad-sub">DEF</span></button>
+      <button class="numpad-btn" data-num="4">4<span class="numpad-sub">GHI</span></button>
+      <button class="numpad-btn" data-num="5">5<span class="numpad-sub">JKL</span></button>
+      <button class="numpad-btn" data-num="6">6<span class="numpad-sub">MNO</span></button>
+      <button class="numpad-btn" data-num="7">7<span class="numpad-sub">PQRS</span></button>
+      <button class="numpad-btn" data-num="8">8<span class="numpad-sub">TUV</span></button>
+      <button class="numpad-btn" data-num="9">9<span class="numpad-sub">WXYZ</span></button>
+      <div class="numpad-empty"></div>
+      <button class="numpad-btn" data-num="0">0</button>
+      <button class="numpad-btn numpad-del" id="deleteBtn" aria-label="지우기">
+        <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+          <path d="M8 1H20C20.5523 1 21 1.44772 21 2V14C21 14.5523 20.5523 15 20 15H8L1 8L8 1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M13 6L17 10M17 6L13 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="login-loading" id="loginLoading">
+      <div class="loading-spinner"></div>
+      <span>확인 중...</span>
+    </div>
+  </div>
+  <script src="/js/login.js"></script>
+</body>
+</html>
