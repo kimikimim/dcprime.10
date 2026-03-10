@@ -370,25 +370,65 @@ app.get('/api/admin/attendance/export', requireAuth, requireAdmin, async (req, r
   await db.read();
   const { students, attendance } = db.data;
   const statusKr = { present: '출석', absent: '결석', late: '지각' };
+  const DAY_NAMES = ['월', '화', '수', '목', '금', '토', '일']; // 월=0 기준
 
   const days = parseInt(req.query.days || '30', 10);
-  const dates = Array.from({ length: days }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (days - 1 - i));
-    return d.toISOString().split('T')[0];
+
+  // 조회 범위의 시작일이 속한 주 월요일부터 오늘이 속한 주 일요일까지 확장
+  const today = new Date();
+  const rangeStart = new Date(today);
+  rangeStart.setDate(today.getDate() - (days - 1));
+
+  // rangeStart → 해당 주 월요일
+  const toMonday = rangeStart.getDay() === 0 ? 6 : rangeStart.getDay() - 1;
+  const weekStart = new Date(rangeStart);
+  weekStart.setDate(rangeStart.getDate() - toMonday);
+
+  // today → 해당 주 일요일
+  const toSunday = today.getDay() === 0 ? 0 : 7 - today.getDay();
+  const weekEnd = new Date(today);
+  weekEnd.setDate(today.getDate() + toSunday);
+
+  // 월요일~일요일 전체 날짜 배열
+  const allDates = [];
+  for (const d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+    allDates.push(d.toISOString().split('T')[0]);
+  }
+
+  // 7일씩 주차별 그룹
+  const weeks = [];
+  for (let i = 0; i < allDates.length; i += 7) weeks.push(allDates.slice(i, i + 7));
+
+  // 행 1: 이름 | 학년 | [n주차(날짜범위) — 7칸 병합] | ...
+  const row1 = ['이름', '학년'];
+  const merges = [];
+  let col = 2;
+  weeks.forEach((wd, wi) => {
+    const first = wd[0].slice(5).replace('-', '/');
+    const last  = wd[wd.length - 1].slice(5).replace('-', '/');
+    row1.push(`${wi + 1}주차\n(${first}~${last})`);
+    for (let j = 1; j < 7; j++) row1.push('');
+    merges.push({ s: { r: 0, c: col }, e: { r: 0, c: col + 6 } });
+    col += 7;
   });
 
-  const header = ['이름', '학년', ...dates];
-  const rows = [header, ...students.map(s => [
+  // 행 2: '' | '' | 월 | 화 | 수 | 목 | 금 | 토 | 일 | 월 | ...
+  const row2 = ['', '', ...weeks.flatMap(() => DAY_NAMES)];
+
+  // 학생 데이터 행
+  const dataRows = students.map(s => [
     s.name, s.grade || '',
-    ...dates.map(date => {
+    ...allDates.map(date => {
       const r = attendance.find(a => a.studentId === s.id && a.date === date);
       return statusKr[r?.status] || '';
     }),
-  ])];
+  ]);
 
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 10 }, { wch: 5 }, ...dates.map(() => ({ wch: 8 }))];
+  const ws = XLSX.utils.aoa_to_sheet([row1, row2, ...dataRows]);
+  ws['!merges'] = merges;
+  ws['!cols']   = [{ wch: 10 }, { wch: 5 }, ...allDates.map(() => ({ wch: 6 }))];
+  ws['!rows']   = [{ hpt: 32 }, { hpt: 16 }]; // 주차 헤더 행 높이
   XLSX.utils.book_append_sheet(wb, ws, '출석부');
 
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
