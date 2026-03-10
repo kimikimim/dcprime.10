@@ -28,12 +28,15 @@ const UPLOADS_DIR = NAS_PATH || LOCAL_UPLOADS;
 if (NAS_PATH) {
   try {
     fs.mkdirSync(NAS_PATH, { recursive: true });
-    console.log(`📁 NAS 업로드 경로: ${NAS_PATH}`);
+    console.log(`📁 NAS 경로: ${NAS_PATH}`);
   } catch (err) {
     console.error(`⚠️  NAS 경로 접근 실패 (${NAS_PATH}): ${err.message}`);
     console.error('   → 로컬 경로로 폴백합니다.');
   }
 }
+
+// 폴더명으로 쓸 수 없는 문자 제거 (윈도우/맥 공통)
+const safeFolderName = name => (name || 'unknown').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim() || 'unknown';
 
 // ── lowdb ─────────────────────────────────────────────────────
 const DB_FILE = path.join(DB_DIR, 'data.json');
@@ -85,8 +88,11 @@ async function initDB() {
 // ── multer (이미지 업로드) ─────────────────────────────────────
 const imgStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // NAS가 살아있으면 NAS로, 죽어있으면 로컬로
-    const dest = (NAS_PATH && fs.existsSync(NAS_PATH)) ? NAS_PATH : LOCAL_UPLOADS;
+    // NAS가 살아있으면 NAS/학생이름/, 아니면 로컬/학생이름/
+    const studentFolder = safeFolderName(req.session.userName);
+    const base = (NAS_PATH && fs.existsSync(NAS_PATH)) ? NAS_PATH : LOCAL_UPLOADS;
+    const dest = path.join(base, studentFolder);
+    fs.mkdirSync(dest, { recursive: true });
     cb(null, dest);
   },
   filename: (req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),
@@ -266,7 +272,8 @@ app.post('/api/study/analyze', requireAuth, uploadImg.single('image'), async (re
       analysis = { subject: '기타', estimatedHours: 1, summary: text.slice(0, 200), feedback: '열심히 공부했어요!' };
     }
 
-    res.json({ success: true, imagePath: `/uploads/${req.file.filename}`, analysis });
+    const studentFolder = safeFolderName(req.session.userName);
+    res.json({ success: true, imagePath: `/uploads/${studentFolder}/${req.file.filename}`, analysis });
   } catch (err) {
     console.error('OCR 오류:', err.message);
     try { fs.unlinkSync(req.file.path); } catch {}
@@ -514,14 +521,21 @@ ${recentChat}
 // ─────────────────────────────────────────────────────────────
 // 업로드 파일 서빙 (NAS 경로도 웹에서 접근 가능하도록)
 // ─────────────────────────────────────────────────────────────
-app.get('/uploads/:filename', (req, res) => {
-  const filename = path.basename(req.params.filename); // path traversal 방지
-  // NAS 먼저 확인, 없으면 로컬
-  const nasFile   = NAS_PATH ? path.join(NAS_PATH, filename) : null;
-  const localFile = path.join(LOCAL_UPLOADS, filename);
+// /uploads/학생이름/파일.jpg  또는 구버전 /uploads/파일.jpg 모두 처리
+app.get('/uploads/*', (req, res) => {
+  // path traversal 방지: 각 세그먼트를 개별 검증
+  const segments = req.params[0].split('/').map(s => path.basename(s)).filter(Boolean);
+  if (!segments.length) return res.status(404).end();
 
-  if (nasFile && fs.existsSync(nasFile)) return res.sendFile(nasFile);
-  if (fs.existsSync(localFile))          return res.sendFile(localFile);
+  const relativePath = path.join(...segments); // 예: "김민준/abc123.jpg"
+
+  const candidates = [];
+  if (NAS_PATH) candidates.push(path.join(NAS_PATH, relativePath));
+  candidates.push(path.join(LOCAL_UPLOADS, relativePath));
+
+  for (const f of candidates) {
+    if (fs.existsSync(f)) return res.sendFile(f);
+  }
   res.status(404).json({ error: '파일을 찾을 수 없습니다.' });
 });
 
