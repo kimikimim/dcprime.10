@@ -20,6 +20,58 @@
     window.location.href = '/';
   });
 
+  // ── NAS 백업 상태 ────────────────────────────────────────────
+  const backupDot   = document.getElementById('backupDot');
+  const backupLabel = document.getElementById('backupLabel');
+  const backupNowBtn = document.getElementById('backupNowBtn');
+
+  const loadBackupStatus = async () => {
+    try {
+      const data = await fetch('/api/admin/backup/status').then(r => r.json());
+      if (!data.enabled) {
+        backupDot.className = 'backup-dot none';
+        backupLabel.textContent = 'NAS 백업 미설정 (.env의 NAS_UPLOAD_PATH 확인)';
+        backupNowBtn.style.display = 'none';
+        return;
+      }
+      if (data.backedUpAt) {
+        const d = new Date(data.backedUpAt);
+        const fmt = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        backupDot.className = 'backup-dot ok';
+        backupLabel.textContent = `NAS 백업 완료 · 마지막: ${fmt} · ${data.fileCount}개 보관 중`;
+      } else {
+        backupDot.className = 'backup-dot none';
+        backupLabel.textContent = 'NAS 연결됨 · 아직 백업 없음';
+      }
+    } catch {
+      backupDot.className = 'backup-dot error';
+      backupLabel.textContent = '백업 상태 확인 실패';
+    }
+  };
+
+  backupNowBtn.addEventListener('click', async () => {
+    backupNowBtn.disabled = true;
+    backupDot.className = 'backup-dot pulsing';
+    backupLabel.textContent = '백업 중...';
+    try {
+      const data = await fetch('/api/admin/backup', { method: 'POST' }).then(r => r.json());
+      if (data.success) {
+        backupDot.className = 'backup-dot ok';
+        backupLabel.textContent = `백업 완료 · 방금 저장됨`;
+        setTimeout(loadBackupStatus, 1500);
+      } else {
+        backupDot.className = 'backup-dot error';
+        backupLabel.textContent = `백업 실패: ${data.reason}`;
+      }
+    } catch {
+      backupDot.className = 'backup-dot error';
+      backupLabel.textContent = '백업 중 오류 발생';
+    }
+    backupNowBtn.disabled = false;
+  });
+
+  loadBackupStatus();
+
   const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   // ════════════════════════════════════════════════

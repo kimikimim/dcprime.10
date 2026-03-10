@@ -36,7 +36,40 @@ if (NAS_PATH) {
 }
 
 // ── lowdb ─────────────────────────────────────────────────────
-const db = new Low(new JSONFile(path.join(DB_DIR, 'data.json')));
+const DB_FILE = path.join(DB_DIR, 'data.json');
+const db = new Low(new JSONFile(DB_FILE));
+
+// ── NAS 백업 ──────────────────────────────────────────────────
+const NAS_BACKUP_DIR = NAS_PATH ? path.join(NAS_PATH, 'backup') : null;
+const NAS_STATUS_FILE = NAS_BACKUP_DIR ? path.join(NAS_BACKUP_DIR, 'latest.json') : null;
+
+async function backupToNAS() {
+  if (!NAS_PATH || !NAS_BACKUP_DIR) return { success: false, reason: 'NAS 경로가 설정되지 않았습니다.' };
+
+  try {
+    fs.mkdirSync(NAS_BACKUP_DIR, { recursive: true });
+
+    const today = new Date().toISOString().split('T')[0];
+    const destFile = path.join(NAS_BACKUP_DIR, `data_${today}.json`);
+
+    fs.copyFileSync(DB_FILE, destFile);
+
+    const status = { backedUpAt: new Date().toISOString(), file: destFile };
+    fs.writeFileSync(NAS_STATUS_FILE, JSON.stringify(status));
+
+    // 30일 초과 백업 파일 자동 삭제
+    const backups = fs.readdirSync(NAS_BACKUP_DIR)
+      .filter(f => f.startsWith('data_') && f.endsWith('.json'))
+      .sort();
+    backups.slice(0, Math.max(0, backups.length - 30))
+      .forEach(f => { try { fs.unlinkSync(path.join(NAS_BACKUP_DIR, f)); } catch {} });
+
+    return { success: true, ...status };
+  } catch (err) {
+    console.error('NAS 백업 실패:', err.message);
+    return { success: false, reason: err.message };
+  }
+}
 
 async function initDB() {
   await db.read();
@@ -259,6 +292,7 @@ app.post('/api/study/save', requireAuth, async (req, res) => {
     createdAt: new Date().toISOString(),
   });
   await db.write();
+  backupToNAS(); // 학습 인증 저장 시 NAS 자동 백업 (non-blocking)
   res.json({ success: true });
 });
 
@@ -274,6 +308,26 @@ app.get('/api/study/logs/me', requireAuth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // 원장 API
 // ─────────────────────────────────────────────────────────────
+
+// ── NAS 백업 상태 / 수동 백업 ─────────────────────────────────
+app.get('/api/admin/backup/status', requireAuth, requireAdmin, (req, res) => {
+  if (!NAS_PATH) return res.json({ enabled: false });
+  try {
+    const status = JSON.parse(fs.readFileSync(NAS_STATUS_FILE, 'utf8'));
+    // 백업 파일 목록
+    const files = fs.existsSync(NAS_BACKUP_DIR)
+      ? fs.readdirSync(NAS_BACKUP_DIR).filter(f => f.startsWith('data_') && f.endsWith('.json')).sort().reverse()
+      : [];
+    res.json({ enabled: true, ...status, fileCount: files.length, files: files.slice(0, 5) });
+  } catch {
+    res.json({ enabled: true, backedUpAt: null, fileCount: 0 });
+  }
+});
+
+app.post('/api/admin/backup', requireAuth, requireAdmin, async (req, res) => {
+  const result = await backupToNAS();
+  res.json(result);
+});
 
 // 학생 목록
 app.get('/api/admin/students', requireAuth, requireAdmin, async (req, res) => {
@@ -300,6 +354,7 @@ app.post('/api/admin/attendance', requireAuth, requireAdmin, async (req, res) =>
     db.data.attendance.push({ id: uuidv4(), studentId, date, status, createdAt: new Date().toISOString() });
   }
   await db.write();
+  backupToNAS(); // 출결 변경 시 NAS 자동 백업 (non-blocking)
   res.json({ success: true });
 });
 

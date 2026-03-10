@@ -355,6 +355,31 @@ img { display: block; }
 .assistant-bubble h2 { font-size: 15px; font-weight: 700; margin: 7px 0 3px; }
 .assistant-bubble h3 { font-size: 14px; font-weight: 700; margin: 6px 0 3px; }
 
+/* ── NAS 백업 상태 바 ── */
+.backup-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 18px; background: var(--gray-8); border-bottom: 1px solid var(--gray-6);
+  font-size: 12px; flex-shrink: 0;
+}
+.backup-bar-left { display: flex; align-items: center; gap: 7px; }
+.backup-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--gray-5); flex-shrink: 0;
+  transition: background .3s;
+}
+.backup-dot.ok     { background: var(--green); box-shadow: 0 0 0 3px rgba(0,180,147,.15); }
+.backup-dot.error  { background: var(--red); }
+.backup-dot.none   { background: var(--gray-4); }
+.backup-dot.pulsing { animation: pulse 1s ease infinite; }
+.backup-label { color: var(--gray-2); font-weight: 500; }
+.backup-btn {
+  height: 26px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  color: var(--blue); background: var(--blue-light); border: 1px solid #C2D9FF;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.backup-btn:hover { background: #D6E9FF; }
+.backup-btn:disabled { opacity: .5; cursor: not-allowed; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
 /* ============================================================
    공통 애니메이션
    ============================================================ */
