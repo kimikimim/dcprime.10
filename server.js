@@ -1,4 +1,5 @@
 require('dotenv').config();
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
@@ -202,7 +203,7 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
     const systemPrompt = student.systemPrompt || `당신은 DC Prime 학원의 ${student.name} 학생(${student.grade || ''})을 위한 개인 AI 학습 어시스턴트입니다.
 학생 특성: ${student.studentInfo || '정보 없음'}
@@ -245,7 +246,7 @@ app.post('/api/study/analyze', requireAuth, uploadImg.single('image'), async (re
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
     const base64 = fs.readFileSync(req.file.path).toString('base64');
     const prompt = `학습 사진을 분석해주세요. 공책, 교재, 문제지, 필기, 화면 등 학습 관련 이미지입니다.
@@ -506,7 +507,7 @@ app.get('/api/admin/analysis/:studentId', requireAuth, requireAdmin, async (req,
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
     const subjectHours = {};
     studyLogs.forEach(l => { subjectHours[l.subject] = (subjectHours[l.subject] || 0) + l.estimatedHours; });
