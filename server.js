@@ -337,10 +337,78 @@ app.post('/api/admin/backup', requireAuth, requireAdmin, async (req, res) => {
   res.json(result);
 });
 
-// 학생 목록
+// ── 학생 관리 CRUD ────────────────────────────────────────────
+
+// 목록
 app.get('/api/admin/students', requireAuth, requireAdmin, async (req, res) => {
   await db.read();
   res.json(db.data.students.map(({ passwordHash, ...s }) => s));
+});
+
+// 추가
+app.post('/api/admin/students', requireAuth, requireAdmin, async (req, res) => {
+  const { name, pin, grade, studentInfo } = req.body;
+  if (!name?.trim())           return res.status(400).json({ error: '이름을 입력해주세요.' });
+  if (!pin || !/^\d{4}$/.test(pin)) return res.status(400).json({ error: 'PIN은 4자리 숫자여야 합니다.' });
+
+  await db.read();
+  if (db.data.students.some(s => s.name === name.trim())) {
+    return res.status(409).json({ error: '같은 이름의 학생이 이미 있습니다.' });
+  }
+
+  const student = {
+    id: uuidv4(),
+    name: name.trim(),
+    passwordHash: await bcrypt.hash(pin, 10),
+    grade: grade?.trim() || '',
+    studentInfo: studentInfo?.trim() || '',
+    systemPrompt: null,
+    createdAt: new Date().toISOString(),
+  };
+  db.data.students.push(student);
+  await db.write();
+  const { passwordHash, ...safe } = student;
+  res.json({ success: true, student: safe });
+});
+
+// 수정
+app.put('/api/admin/students/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { name, pin, grade, studentInfo } = req.body;
+  await db.read();
+  const student = db.data.students.find(s => s.id === req.params.id);
+  if (!student) return res.status(404).json({ error: '학생을 찾을 수 없습니다.' });
+
+  if (name?.trim()) {
+    const dup = db.data.students.find(s => s.name === name.trim() && s.id !== req.params.id);
+    if (dup) return res.status(409).json({ error: '같은 이름의 학생이 이미 있습니다.' });
+    student.name = name.trim();
+  }
+  if (pin) {
+    if (!/^\d{4}$/.test(pin)) return res.status(400).json({ error: 'PIN은 4자리 숫자여야 합니다.' });
+    student.passwordHash = await bcrypt.hash(pin, 10);
+  }
+  if (grade  !== undefined) student.grade       = grade.trim();
+  if (studentInfo !== undefined) student.studentInfo = studentInfo.trim();
+  student.updatedAt = new Date().toISOString();
+
+  await db.write();
+  const { passwordHash, ...safe } = student;
+  res.json({ success: true, student: safe });
+});
+
+// 삭제
+app.delete('/api/admin/students/:id', requireAuth, requireAdmin, async (req, res) => {
+  await db.read();
+  const idx = db.data.students.findIndex(s => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: '학생을 찾을 수 없습니다.' });
+
+  db.data.students.splice(idx, 1);
+  // 연관 데이터도 정리
+  db.data.messages    = db.data.messages.filter(m => m.studentId !== req.params.id);
+  db.data.attendance  = db.data.attendance.filter(a => a.studentId !== req.params.id);
+  db.data.studyLogs   = db.data.studyLogs.filter(l => l.studentId !== req.params.id);
+  await db.write();
+  res.json({ success: true });
 });
 
 // ── 출석 ──────────────────────────────────────────────────────

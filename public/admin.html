@@ -47,6 +47,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         장단점 분석
       </button>
+      <button class="tab-btn" data-tab="students">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M19 5v6M16 8h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        학생 관리
+      </button>
     </div>
   </header>
 
@@ -167,6 +171,70 @@
       <div class="analysis-loading" id="analysisLoading" style="display:none">
         <div class="loading-spinner loading-spinner--lg"></div>
         <p>AI가 분석 중입니다...<br /><small>보통 10~20초 소요됩니다</small></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 학생 관리 탭 ═══════════════ -->
+  <div class="tab-panel" id="tabStudents">
+    <div class="admin-panel">
+
+      <div class="panel-toolbar">
+        <h2 class="section-subtitle" style="margin:0">학생 목록</h2>
+        <button class="btn-primary-sm" id="addStudentBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+          학생 추가
+        </button>
+      </div>
+
+      <div class="student-mgmt-list" id="studentMgmtList">
+        <p class="empty-text">학생 데이터를 불러오는 중...</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 학생 추가/수정 모달 -->
+  <div class="modal-overlay" id="studentModal">
+    <div class="modal modal--form">
+      <h3 class="modal-title" id="studentModalTitle">학생 추가</h3>
+
+      <div class="form-group">
+        <label class="form-label">이름 <span class="form-required">*</span></label>
+        <input class="form-input" id="fieldName" type="text" placeholder="홍길동" maxlength="20" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">PIN (4자리) <span class="form-required">*</span></label>
+        <input class="form-input" id="fieldPin" type="text" placeholder="0000" maxlength="4" pattern="\d{4}" inputmode="numeric" />
+        <p class="form-hint" id="pinHint">수정 시 비워두면 기존 PIN 유지</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">학년</label>
+        <input class="form-input" id="fieldGrade" type="text" placeholder="고1, 중2 등" maxlength="10" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">학생 특성 <span class="form-hint-inline">(AI 분석에 활용됩니다)</span></label>
+        <textarea class="form-textarea" id="fieldInfo" placeholder="예) 수학 강점, 영어 보완 필요. 성실하고 꼼꼼함." rows="3" maxlength="500"></textarea>
+      </div>
+
+      <p class="form-error" id="studentFormError"></p>
+
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn--cancel" id="studentModalCancel">취소</button>
+        <button class="modal-btn modal-btn--save" id="studentModalSave">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 학생 삭제 확인 모달 -->
+  <div class="modal-overlay" id="deleteStudentModal">
+    <div class="modal">
+      <div class="modal-icon">🗑️</div>
+      <h3 class="modal-title">학생을 삭제할까요?</h3>
+      <p class="modal-desc" id="deleteStudentDesc">삭제하면 해당 학생의 모든 채팅, 출석, 학습 기록도 함께 삭제됩니다.</p>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn--cancel" id="deleteCancel">취소</button>
+        <button class="modal-btn modal-btn--confirm" id="deleteConfirm">삭제</button>
       </div>
     </div>
   </div>

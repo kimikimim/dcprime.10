@@ -355,6 +355,65 @@ img { display: block; }
 .assistant-bubble h2 { font-size: 15px; font-weight: 700; margin: 7px 0 3px; }
 .assistant-bubble h3 { font-size: 14px; font-weight: 700; margin: 6px 0 3px; }
 
+/* ── 학생 관리 ── */
+.student-mgmt-list { display: flex; flex-direction: column; gap: 10px; }
+
+.student-mgmt-card {
+  background: var(--white); border-radius: var(--r-md); padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow-sm);
+  transition: box-shadow .15s;
+}
+.student-mgmt-card:hover { box-shadow: var(--shadow-md); }
+.student-mgmt-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--blue), #5B9FFF);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: white;
+}
+.student-mgmt-info { flex: 1; min-width: 0; }
+.student-mgmt-name { font-size: 15px; font-weight: 700; color: var(--black); }
+.student-mgmt-meta { font-size: 12px; color: var(--gray-3); margin-top: 2px; }
+.student-mgmt-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.btn-edit {
+  height: 32px; padding: 0 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  color: var(--blue); background: var(--blue-light); border: 1px solid #C2D9FF;
+  cursor: pointer; transition: background .15s;
+}
+.btn-edit:hover { background: #D6E9FF; }
+.btn-delete {
+  height: 32px; padding: 0 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  color: var(--red); background: #FEE8EA; border: 1px solid #FCC;
+  cursor: pointer; transition: background .15s;
+}
+.btn-delete:hover { background: #FDD; }
+
+/* ── 폼 모달 ── */
+.modal--form { padding: 28px 22px 22px; text-align: left; }
+.modal--form .modal-title { text-align: left; margin-bottom: 20px; }
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-2); margin-bottom: 6px; }
+.form-required { color: var(--blue); }
+.form-hint-inline { font-size: 11px; font-weight: 400; color: var(--gray-4); }
+.form-hint { font-size: 11px; color: var(--gray-4); margin-top: 4px; }
+.form-input {
+  width: 100%; height: 44px; padding: 0 12px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--gray-6); background: var(--gray-8);
+  font-size: 14px; color: var(--black); transition: border-color .2s;
+}
+.form-input:focus { border-color: var(--blue); background: var(--white); outline: none; }
+.form-textarea {
+  width: 100%; padding: 10px 12px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--gray-6); background: var(--gray-8);
+  font-size: 14px; color: var(--black); line-height: 1.5; resize: vertical;
+  transition: border-color .2s;
+}
+.form-textarea:focus { border-color: var(--blue); background: var(--white); outline: none; }
+.form-error { font-size: 13px; color: var(--red); min-height: 18px; margin-bottom: 12px; }
+.modal-btn--save {
+  background: var(--blue); color: white;
+}
+.modal-btn--save:hover { background: var(--blue-hover); }
+
 /* ── NAS 백업 상태 바 ── */
 .backup-bar {
   display: flex; align-items: center; justify-content: space-between;

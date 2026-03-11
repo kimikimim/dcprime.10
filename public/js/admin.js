@@ -5,6 +5,7 @@
     attendance: document.getElementById('tabAttendance'),
     study:      document.getElementById('tabStudy'),
     analysis:   document.getElementById('tabAnalysis'),
+    students:   document.getElementById('tabStudents'),
   };
 
   tabBtns.forEach(btn => btn.addEventListener('click', () => {
@@ -13,6 +14,7 @@
     Object.entries(panels).forEach(([k, p]) => p.classList.toggle('active', k === t));
     if (t === 'study')    loadStudyLogs();
     if (t === 'analysis') loadStudentCards();
+    if (t === 'students') renderStudentMgmt();
   }));
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -306,6 +308,132 @@
 
   document.getElementById('reAnalyzeBtn').addEventListener('click', () => {
     if (selectedStudentId) runAnalysis(selectedStudentId);
+  });
+
+  // ════════════════════════════════════════════════
+  // 학생 관리
+  // ════════════════════════════════════════════════
+  let editingStudentId = null;
+  let deletingStudentId = null;
+
+  const studentModal       = document.getElementById('studentModal');
+  const studentModalTitle  = document.getElementById('studentModalTitle');
+  const studentFormError   = document.getElementById('studentFormError');
+  const pinHint            = document.getElementById('pinHint');
+  const deleteStudentModal = document.getElementById('deleteStudentModal');
+  const deleteStudentDesc  = document.getElementById('deleteStudentDesc');
+
+  const renderStudentMgmt = () => {
+    const list = document.getElementById('studentMgmtList');
+    if (!allStudents.length) { list.innerHTML = '<p class="empty-text">등록된 학생이 없습니다. 학생 추가 버튼을 눌러주세요.</p>'; return; }
+    list.innerHTML = allStudents.map(s => `
+      <div class="student-mgmt-card">
+        <div class="student-mgmt-avatar">${s.name.charAt(0)}</div>
+        <div class="student-mgmt-info">
+          <p class="student-mgmt-name">${escHtml(s.name)}</p>
+          <p class="student-mgmt-meta">${escHtml(s.grade || '학년 미설정')} · ${escHtml((s.studentInfo||'특성 정보 없음').slice(0,40))}${(s.studentInfo||'').length>40?'…':''}</p>
+        </div>
+        <div class="student-mgmt-actions">
+          <button class="btn-edit"   data-id="${s.id}">수정</button>
+          <button class="btn-delete" data-id="${s.id}" data-name="${escHtml(s.name)}">삭제</button>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.btn-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = allStudents.find(s => s.id === btn.dataset.id);
+        if (!s) return;
+        editingStudentId = s.id;
+        studentModalTitle.textContent = `${s.name} 수정`;
+        document.getElementById('fieldName').value  = s.name;
+        document.getElementById('fieldPin').value   = '';
+        document.getElementById('fieldGrade').value = s.grade || '';
+        document.getElementById('fieldInfo').value  = s.studentInfo || '';
+        pinHint.style.display = '';
+        studentFormError.textContent = '';
+        studentModal.classList.add('show');
+      });
+    });
+
+    list.querySelectorAll('.btn-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        deletingStudentId = btn.dataset.id;
+        deleteStudentDesc.textContent = `"${btn.dataset.name}" 학생을 삭제하면 모든 채팅, 출석, 학습 기록도 함께 삭제됩니다.`;
+        deleteStudentModal.classList.add('show');
+      });
+    });
+  };
+
+  const refreshStudentData = async () => {
+    allStudents = await fetch('/api/admin/students').then(r => r.json());
+    const filter = document.getElementById('studyStudentFilter');
+    filter.innerHTML = '<option value="">전체 학생</option>';
+    allStudents.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.id; o.textContent = `${s.name} (${s.grade||''})`;
+      filter.appendChild(o);
+    });
+    renderAttendanceTable();
+    renderStudentMgmt();
+  };
+
+  document.getElementById('addStudentBtn').addEventListener('click', () => {
+    editingStudentId = null;
+    studentModalTitle.textContent = '학생 추가';
+    document.getElementById('fieldName').value  = '';
+    document.getElementById('fieldPin').value   = '';
+    document.getElementById('fieldGrade').value = '';
+    document.getElementById('fieldInfo').value  = '';
+    pinHint.style.display = 'none';
+    studentFormError.textContent = '';
+    studentModal.classList.add('show');
+    setTimeout(() => document.getElementById('fieldName').focus(), 100);
+  });
+
+  document.getElementById('studentModalCancel').addEventListener('click', () => studentModal.classList.remove('show'));
+  studentModal.addEventListener('click', e => { if (e.target === studentModal) studentModal.classList.remove('show'); });
+
+  document.getElementById('studentModalSave').addEventListener('click', async () => {
+    const name  = document.getElementById('fieldName').value.trim();
+    const pin   = document.getElementById('fieldPin').value.trim();
+    const grade = document.getElementById('fieldGrade').value.trim();
+    const info  = document.getElementById('fieldInfo').value.trim();
+    studentFormError.textContent = '';
+
+    const saveBtn = document.getElementById('studentModalSave');
+    saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+    try {
+      const url    = editingStudentId ? `/api/admin/students/${editingStudentId}` : '/api/admin/students';
+      const method = editingStudentId ? 'PUT' : 'POST';
+      const body   = editingStudentId
+        ? { name, ...(pin && { pin }), grade, studentInfo: info }
+        : { name, pin, grade, studentInfo: info };
+
+      const res  = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) { studentFormError.textContent = data.error; return; }
+
+      studentModal.classList.remove('show');
+      await refreshStudentData();
+    } catch { studentFormError.textContent = '저장 중 오류가 발생했습니다.'; }
+    finally { saveBtn.disabled = false; saveBtn.textContent = '저장'; }
+  });
+
+  document.getElementById('deleteCancel').addEventListener('click', () => deleteStudentModal.classList.remove('show'));
+  deleteStudentModal.addEventListener('click', e => { if (e.target === deleteStudentModal) deleteStudentModal.classList.remove('show'); });
+
+  document.getElementById('deleteConfirm').addEventListener('click', async () => {
+    if (!deletingStudentId) return;
+    const btn = document.getElementById('deleteConfirm');
+    btn.disabled = true; btn.textContent = '삭제 중...';
+    try {
+      const res = await fetch(`/api/admin/students/${deletingStudentId}`, { method: 'DELETE' });
+      if (!res.ok) { alert((await res.json()).error); return; }
+      deleteStudentModal.classList.remove('show');
+      await refreshStudentData();
+    } catch { alert('삭제 중 오류가 발생했습니다.'); }
+    finally { btn.disabled = false; btn.textContent = '삭제'; }
   });
 
   // ════════════════════════════════════════════════
