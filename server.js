@@ -202,9 +202,6 @@ app.post('/api/chat', requireAuth, async (req, res) => {
   await db.write();
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-
     const systemPrompt = student.systemPrompt || `당신은 DC Prime 학원의 ${student.name} 학생(${student.grade || ''})을 위한 개인 AI 학습 어시스턴트입니다.
 학생 특성: ${student.studentInfo || '정보 없음'}
 
@@ -214,6 +211,12 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 - 학생의 강점을 살리고 약점을 보완할 수 있도록 격려합니다.
 - 한국어로 대화하며, 학생 눈높이에 맞는 설명을 합니다.`;
 
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: systemPrompt,  // startChat 아닌 여기에 넣어야 함
+    });
+
     const history = db.data.messages
       .filter(m => m.studentId === req.session.userId)
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
@@ -222,7 +225,7 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 
     while (history.length && history[0].role === 'model') history.shift();
 
-    const chat = model.startChat({ history, systemInstruction: systemPrompt });
+    const chat = model.startChat({ history });
     const result = await chat.sendMessage(message.trim());
     const aiResponse = result.response.text();
 
