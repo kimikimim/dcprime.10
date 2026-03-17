@@ -229,7 +229,7 @@
       const list = document.getElementById('todayLogsList');
       if (!logs.length) { list.innerHTML = '<p class="empty-text">아직 학습 인증 기록이 없어요.</p>'; return; }
 
-      const subjectColors = { '수학':'#0064FF','영어':'#00B493','국어':'#FF6B35','과학':'#8B5CF6','사회':'#F59E0B','역사':'#EF4444','물리':'#3B82F6','화학':'#10B981','생물':'#6366F1','지구과학':'#0891B2','기타':'#6B7280' };
+      const subjectColors = { '국어':'#FF6B35','영어':'#00B493','수학':'#0064FF','과학':'#8B5CF6','사회':'#F59E0B','기타':'#6B7280' };
 
       list.innerHTML = logs.map(log => `
         <div class="study-log-item">
