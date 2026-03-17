@@ -241,48 +241,31 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 학습 인증 (OCR) API — 학생 전용
+// 학습 인증 — 학생 전용 (사진 업로드 + 직접 입력)
 // ─────────────────────────────────────────────────────────────
-app.post('/api/study/analyze', requireAuth, uploadImg.single('image'), async (req, res) => {
+app.post('/api/study/submit', requireAuth, uploadImg.single('image'), async (req, res) => {
   if (req.session.isAdmin) return res.status(403).json({ error: '학생 전용 기능입니다.' });
-  if (!req.file) return res.status(400).json({ error: '이미지를 업로드해주세요.' });
+  const { subject, hours, memo } = req.body;
+  if (!subject) return res.status(400).json({ error: '과목을 선택해주세요.' });
 
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+  const studentFolder = safeFolderName(req.session.userName);
+  const imagePath = req.file ? `/uploads/${studentFolder}/${req.file.filename}` : null;
 
-    const base64 = fs.readFileSync(req.file.path).toString('base64');
-    const prompt = `학습 사진을 분석해주세요. 공책, 교재, 문제지, 필기, 화면 등 학습 관련 이미지입니다.
-
-반드시 다음 JSON 형식으로만 응답하세요 (마크다운 없이 순수 JSON):
-{
-  "subject": "과목명 (수학/영어/국어/과학/사회/역사/물리/화학/생물/지구과학/기타 중 하나)",
-  "estimatedHours": 숫자 (0.5 단위, 예: 0.5, 1, 1.5, 2),
-  "summary": "학습 내용 요약 (2-3문장)",
-  "feedback": "격려 메시지 + 학습 팁 (1-2문장)"
-}`;
-
-    const result = await model.generateContent([
-      { inlineData: { mimeType: req.file.mimetype.replace('heic', 'jpeg'), data: base64 } },
-      { text: prompt },
-    ]);
-
-    const text = result.response.text().trim();
-    let analysis;
-    try {
-      const m = text.match(/\{[\s\S]*\}/);
-      analysis = JSON.parse(m ? m[0] : text);
-    } catch {
-      analysis = { subject: '기타', estimatedHours: 1, summary: text.slice(0, 200), feedback: '열심히 공부했어요!' };
-    }
-
-    const studentFolder = safeFolderName(req.session.userName);
-    res.json({ success: true, imagePath: `/uploads/${studentFolder}/${req.file.filename}`, analysis });
-  } catch (err) {
-    console.error('OCR 오류:', err.message);
-    try { fs.unlinkSync(req.file.path); } catch {}
-    res.status(500).json({ error: 'AI 분석 중 오류가 발생했습니다.' });
-  }
+  await db.read();
+  db.data.studyLogs.push({
+    id: uuidv4(),
+    studentId: req.session.userId,
+    date: new Date().toISOString().split('T')[0],
+    imagePath,
+    subject,
+    estimatedHours: parseFloat(hours) || 1,
+    summary: memo || '',
+    feedback: '',
+    createdAt: new Date().toISOString(),
+  });
+  await db.write();
+  backupToNAS();
+  res.json({ success: true });
 });
 
 app.post('/api/study/save', requireAuth, async (req, res) => {

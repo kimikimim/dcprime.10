@@ -121,22 +121,22 @@
   // ══════════════════════════════════════════════
   // 학습 인증 탭
   // ══════════════════════════════════════════════
-  const uploadArea    = document.getElementById('uploadArea');
-  const fileInput     = document.getElementById('studyFileInput');
+  const uploadArea        = document.getElementById('uploadArea');
+  const fileInput         = document.getElementById('studyFileInput');
   const uploadPlaceholder = document.getElementById('uploadPlaceholder');
-  const uploadPreview = document.getElementById('uploadPreview');
-  const changeImgBtn  = document.getElementById('changeImageBtn');
-  const analyzeBtn    = document.getElementById('analyzeBtn');
-  const analyzeBtnText= document.getElementById('analyzeBtnText');
-  const analyzeSpinner= document.getElementById('analyzeSpinner');
-  const analysisResult= document.getElementById('analysisResult');
-  const saveStudyBtn  = document.getElementById('saveStudyBtn');
-  const retryBtn      = document.getElementById('retryBtn');
+  const uploadPreview     = document.getElementById('uploadPreview');
+  const changeImgBtn      = document.getElementById('changeImageBtn');
+  const saveStudyBtn      = document.getElementById('saveStudyBtn');
+  const saveBtnText       = document.getElementById('saveBtnText');
+  const saveSpinner       = document.getElementById('saveSpinner');
+  const studyFormError    = document.getElementById('studyFormError');
+  const studySubject      = document.getElementById('studySubject');
+  const studyHoursInput   = document.getElementById('studyHours');
+  const studyMemo         = document.getElementById('studyMemo');
 
   let currentFile = null;
-  let currentAnalysis = null;
-  let currentImagePath = null;
 
+  // 사진 업로드
   uploadArea.addEventListener('click', () => { if (!currentFile) fileInput.click(); });
   uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
   uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
@@ -145,96 +145,82 @@
     const f = e.dataTransfer.files[0];
     if (f && f.type.startsWith('image/')) setFile(f);
   });
-
   fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
   changeImgBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
 
   const setFile = file => {
-    currentFile = file; currentAnalysis = null; currentImagePath = null;
-    analysisResult.style.display = 'none';
+    currentFile = file;
     const reader = new FileReader();
     reader.onload = ev => {
       uploadPreview.src = ev.target.result;
       uploadPreview.style.display = 'block';
       uploadPlaceholder.style.display = 'none';
       changeImgBtn.style.display = '';
-      analyzeBtn.disabled = false;
     };
     reader.readAsDataURL(file);
   };
 
-  analyzeBtn.addEventListener('click', async () => {
-    if (!currentFile) return;
-    analyzeBtnText.style.display = 'none'; analyzeSpinner.style.display = '';
-    analyzeBtn.disabled = true;
+  // 시간 칩 선택
+  document.querySelectorAll('.hours-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.hours-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      studyHoursInput.value = chip.dataset.value;
+    });
+  });
+
+  // 저장
+  saveStudyBtn.addEventListener('click', async () => {
+    studyFormError.textContent = '';
+    const subject = studySubject.value;
+    const hours   = studyHoursInput.value;
+
+    if (!subject) { studyFormError.textContent = '과목을 선택해주세요.'; return; }
+    if (!hours)   { studyFormError.textContent = '학습 시간을 선택해주세요.'; return; }
+
+    saveBtnText.textContent = '저장 중...';
+    saveSpinner.style.display = '';
+    saveStudyBtn.disabled = true;
 
     const form = new FormData();
-    form.append('image', currentFile);
+    if (currentFile) form.append('image', currentFile);
+    form.append('subject', subject);
+    form.append('hours', hours);
+    form.append('memo', studyMemo.value);
 
     try {
-      const res  = await fetch('/api/study/analyze', { method: 'POST', body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '분석 실패');
-
-      currentAnalysis = data.analysis; currentImagePath = data.imagePath;
-
-      document.getElementById('resultSubject').textContent = data.analysis.subject;
-      document.getElementById('resultHours').textContent = `${data.analysis.estimatedHours}시간`;
-      document.getElementById('resultSummary').textContent = data.analysis.summary;
-      document.getElementById('resultFeedback').textContent = data.analysis.feedback;
-
-      const subjectSel = document.getElementById('adjustSubject');
-      Array.from(subjectSel.options).forEach(o => { o.selected = o.text === data.analysis.subject; });
-      const hoursSel = document.getElementById('adjustHours');
-      Array.from(hoursSel.options).forEach(o => { o.selected = parseFloat(o.value) === parseFloat(data.analysis.estimatedHours); });
-
-      analysisResult.style.display = '';
-      analysisResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch (err) {
-      alert('분석 중 오류가 발생했습니다: ' + err.message);
-    } finally {
-      analyzeBtnText.style.display = ''; analyzeSpinner.style.display = 'none';
-      analyzeBtn.disabled = false;
-    }
-  });
-
-  saveStudyBtn.addEventListener('click', async () => {
-    if (!currentAnalysis) return;
-    saveStudyBtn.disabled = true; saveStudyBtn.textContent = '저장 중...';
-
-    const subject = document.getElementById('adjustSubject').value;
-    const estimatedHours = document.getElementById('adjustHours').value;
-
-    try {
-      const res = await fetch('/api/study/save', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ imagePath: currentImagePath, subject, estimatedHours, summary: currentAnalysis.summary, feedback: currentAnalysis.feedback }),
-      });
+      const res = await fetch('/api/study/submit', { method: 'POST', body: form });
       if (!res.ok) throw new Error((await res.json()).error);
 
-      // 초기화
-      currentFile = null; currentAnalysis = null; currentImagePath = null;
+      // 폼 초기화
+      currentFile = null;
+      fileInput.value = '';
       uploadPreview.src = ''; uploadPreview.style.display = 'none';
       uploadPlaceholder.style.display = ''; changeImgBtn.style.display = 'none';
-      analyzeBtn.disabled = true; analysisResult.style.display = 'none';
-      fileInput.value = '';
+      studySubject.value = '';
+      studyHoursInput.value = '';
+      document.querySelectorAll('.hours-chip').forEach(c => c.classList.remove('active'));
+      studyMemo.value = '';
 
       loadStudyLogs();
-      alert('학습 인증이 저장되었습니다! 🎉');
+      showStudyToast('학습 인증이 저장되었습니다!');
     } catch (err) {
-      alert('저장 실패: ' + err.message);
+      studyFormError.textContent = '저장 실패: ' + err.message;
     } finally {
-      saveStudyBtn.disabled = false; saveStudyBtn.textContent = '💾 저장하기';
+      saveBtnText.textContent = '저장하기';
+      saveSpinner.style.display = 'none';
+      saveStudyBtn.disabled = false;
     }
   });
 
-  retryBtn.addEventListener('click', () => {
-    currentFile = null; currentAnalysis = null;
-    uploadPreview.src = ''; uploadPreview.style.display = 'none';
-    uploadPlaceholder.style.display = ''; changeImgBtn.style.display = 'none';
-    analyzeBtn.disabled = true; analysisResult.style.display = 'none';
-    fileInput.value = '';
-  });
+  const showStudyToast = msg => {
+    const t = document.createElement('div');
+    t.className = 'study-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2500);
+  };
 
   const loadStudyLogs = async () => {
     try {

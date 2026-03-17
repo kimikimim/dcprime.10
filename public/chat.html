@@ -83,73 +83,70 @@
   <div class="tab-panel" id="tabStudy">
     <div class="study-container">
 
-      <!-- 업로드 영역 -->
-      <div class="study-upload-section">
-        <h2 class="study-section-title">📸 오늘 공부한 내용을 인증해요</h2>
-        <p class="study-section-desc">공책, 교재, 문제집 사진을 찍어 올려주세요.<br />AI가 어떤 과목을 얼마나 공부했는지 분석해드려요.</p>
+      <div class="study-form-card">
+        <h2 class="study-section-title">📝 오늘 학습 인증</h2>
+        <p class="study-section-desc">오늘 공부한 내용을 기록해두세요.</p>
 
-        <div class="upload-area" id="uploadArea">
-          <input type="file" id="studyFileInput" accept="image/*" capture="environment" hidden />
-          <div class="upload-placeholder" id="uploadPlaceholder">
-            <div class="upload-icon">📷</div>
-            <p class="upload-text">사진을 탭하여 업로드</p>
-            <p class="upload-subtext">JPEG, PNG, WEBP · 최대 15MB</p>
+        <!-- 사진 업로드 (선택) -->
+        <div class="study-field">
+          <label class="study-label">공부 사진 <span class="study-label-hint">선택</span></label>
+          <div class="upload-area" id="uploadArea">
+            <input type="file" id="studyFileInput" accept="image/*" capture="environment" hidden />
+            <div class="upload-placeholder" id="uploadPlaceholder">
+              <div class="upload-icon">📷</div>
+              <p class="upload-text">탭하여 사진 추가</p>
+              <p class="upload-subtext">JPEG, PNG, WEBP · 최대 15MB</p>
+            </div>
+            <img class="upload-preview" id="uploadPreview" alt="" />
           </div>
-          <img class="upload-preview" id="uploadPreview" alt="업로드된 이미지" />
+          <button class="btn-ghost-sm change-photo-btn" id="changeImageBtn" style="display:none">사진 변경</button>
         </div>
 
-        <div class="upload-actions">
-          <button class="btn-secondary" id="changeImageBtn" style="display:none">사진 변경</button>
-          <button class="btn-primary" id="analyzeBtn" disabled>
-            <span id="analyzeBtnText">✨ AI 분석하기</span>
-            <div class="btn-spinner" id="analyzeSpinner" style="display:none"></div>
-          </button>
+        <!-- 과목 -->
+        <div class="study-field">
+          <label class="study-label">과목 <span class="study-label-required">*</span></label>
+          <select class="study-select" id="studySubject">
+            <option value="">과목을 선택하세요</option>
+            <option>수학</option><option>영어</option><option>국어</option>
+            <option>과학</option><option>사회</option><option>역사</option>
+            <option>물리</option><option>화학</option><option>생물</option>
+            <option>지구과학</option><option>기타</option>
+          </select>
         </div>
+
+        <!-- 학습 시간 -->
+        <div class="study-field">
+          <label class="study-label">학습 시간 <span class="study-label-required">*</span></label>
+          <div class="study-hours-grid">
+            <button class="hours-chip" data-value="0.5">0.5시간</button>
+            <button class="hours-chip" data-value="1">1시간</button>
+            <button class="hours-chip" data-value="1.5">1.5시간</button>
+            <button class="hours-chip" data-value="2">2시간</button>
+            <button class="hours-chip" data-value="2.5">2.5시간</button>
+            <button class="hours-chip" data-value="3">3시간</button>
+            <button class="hours-chip" data-value="3.5">3.5시간</button>
+            <button class="hours-chip" data-value="4">4시간</button>
+            <button class="hours-chip" data-value="5">5시간</button>
+            <button class="hours-chip" data-value="6">6시간+</button>
+          </div>
+          <input type="hidden" id="studyHours" value="" />
+        </div>
+
+        <!-- 메모 -->
+        <div class="study-field">
+          <label class="study-label">학습 내용 메모 <span class="study-label-hint">선택</span></label>
+          <textarea class="study-textarea" id="studyMemo" placeholder="오늘 공부한 내용, 어려웠던 점 등을 적어보세요." rows="3" maxlength="500"></textarea>
+        </div>
+
+        <p class="study-form-error" id="studyFormError"></p>
+
+        <button class="btn-primary btn-full" id="saveStudyBtn">
+          <span id="saveBtnText">저장하기</span>
+          <div class="btn-spinner" id="saveSpinner" style="display:none"></div>
+        </button>
       </div>
 
-      <!-- 분석 결과 -->
-      <div class="analysis-result" id="analysisResult" style="display:none">
-        <h3 class="analysis-title">📊 분석 결과</h3>
-        <div class="analysis-cards">
-          <div class="analysis-card">
-            <span class="analysis-card-label">과목</span>
-            <span class="analysis-card-value" id="resultSubject">—</span>
-          </div>
-          <div class="analysis-card">
-            <span class="analysis-card-label">학습 시간</span>
-            <span class="analysis-card-value" id="resultHours">—</span>
-          </div>
-        </div>
-        <div class="analysis-summary">
-          <p class="analysis-summary-label">학습 내용</p>
-          <p id="resultSummary" class="analysis-summary-text">—</p>
-        </div>
-        <div class="analysis-feedback" id="resultFeedback"></div>
-
-        <div class="analysis-adjust">
-          <p class="adjust-label">직접 수정</p>
-          <div class="adjust-row">
-            <select class="adjust-select" id="adjustSubject">
-              <option>수학</option><option>영어</option><option>국어</option>
-              <option>과학</option><option>사회</option><option>역사</option>
-              <option>물리</option><option>화학</option><option>생물</option>
-              <option>지구과학</option><option>기타</option>
-            </select>
-            <select class="adjust-select" id="adjustHours">
-              <option value="0.5">0.5시간</option><option value="1">1시간</option>
-              <option value="1.5">1.5시간</option><option value="2">2시간</option>
-              <option value="2.5">2.5시간</option><option value="3">3시간</option>
-              <option value="3.5">3.5시간</option><option value="4">4시간</option>
-              <option value="5">5시간</option><option value="6">6시간+</option>
-            </select>
-          </div>
-        </div>
-
-        <button class="btn-primary btn-full" id="saveStudyBtn">💾 저장하기</button>
-        <button class="btn-ghost btn-full" id="retryBtn">다시 분석하기</button>
-      </div>
-
-      <!-- 오늘의 기록 -->
+      <!-- 학습 기록 -->
       <div class="today-logs" id="todayLogs">
         <h3 class="today-logs-title">📋 나의 학습 기록</h3>
         <div id="todayLogsList"><p class="empty-text">아직 학습 인증 기록이 없어요.</p></div>
