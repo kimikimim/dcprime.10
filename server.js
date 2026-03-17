@@ -620,7 +620,10 @@ ${recentChat}
 ## 💬 지도 시 주의사항
 원장/강사가 특별히 신경써야 할 포인트`;
 
-    const analysis = await callAI({ userMessage: prompt });
+    const analysis = await callAI({
+      system: '당신은 한국 학원의 학생 분석 전문가입니다. 반드시 순수한 한국어로만 작성하세요. 한자, 일본어, 중국어는 절대 사용하지 마세요.',
+      userMessage: prompt,
+    });
     res.json({ studentName: student.name, grade: student.grade, analysis, generatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('AI 분석 오류:', err.message);
