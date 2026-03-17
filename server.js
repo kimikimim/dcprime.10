@@ -1,10 +1,12 @@
 require('dotenv').config();
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GROQ_MODEL   = process.env.GROQ_MODEL   || 'llama-3.3-70b-versatile';
 const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcryptjs');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const { Low, JSONFile } = require('lowdb');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
@@ -38,6 +40,32 @@ if (NAS_PATH) {
 
 // 폴더명으로 쓸 수 없는 문자 제거 (윈도우/맥 공통)
 const safeFolderName = name => (name || 'unknown').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim() || 'unknown';
+
+// ── AI 호출 헬퍼 (Groq 우선, 없으면 Gemini) ──────────────────
+// chatHistory: [{ role: 'user'|'assistant', content }]
+async function callAI({ system = '', chatHistory = [], userMessage }) {
+  if (process.env.GROQ_API_KEY) {
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const msgs = [];
+    if (system) msgs.push({ role: 'system', content: system });
+    chatHistory.forEach(m => msgs.push({ role: m.role, content: m.content }));
+    if (userMessage) msgs.push({ role: 'user', content: userMessage });
+    const res = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: msgs,
+      max_tokens: 2048,
+    });
+    return res.choices[0].message.content;
+  } else {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL, systemInstruction: system || undefined });
+    const history = chatHistory.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+    while (history.length && history[0].role === 'model') history.shift();
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(userMessage || '');
+    return result.response.text();
+  }
+}
 
 // ── lowdb ─────────────────────────────────────────────────────
 const DB_FILE = path.join(DB_DIR, 'data.json');
@@ -211,29 +239,19 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 - 학생의 강점을 살리고 약점을 보완할 수 있도록 격려합니다.
 - 한국어로 대화하며, 학생 눈높이에 맞는 설명을 합니다.`;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
-      systemInstruction: systemPrompt,  // startChat 아닌 여기에 넣어야 함
-    });
-
-    const history = db.data.messages
+    const chatHistory = db.data.messages
       .filter(m => m.studentId === req.session.userId)
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
       .slice(-31, -1)
-      .map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] }));
+      .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }));
 
-    while (history.length && history[0].role === 'model') history.shift();
-
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(message.trim());
-    const aiResponse = result.response.text();
+    const aiResponse = await callAI({ system: systemPrompt, chatHistory, userMessage: message.trim() });
 
     db.data.messages.push({ id: uuidv4(), studentId: req.session.userId, role: 'assistant', content: aiResponse, createdAt: new Date().toISOString() });
     await db.write();
     res.json({ response: aiResponse });
   } catch (err) {
-    console.error('Gemini 오류:', err.message);
+    console.error('AI 오류:', err.message);
     db.data.messages = db.data.messages.filter(m => m.id !== userMsg.id);
     await db.write();
     res.status(500).json({ error: 'AI 응답 생성 중 오류가 발생했습니다.' });
@@ -560,9 +578,6 @@ app.get('/api/admin/analysis/:studentId', requireAuth, requireAdmin, async (req,
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-
     const subjectHours = {};
     studyLogs.forEach(l => { subjectHours[l.subject] = (subjectHours[l.subject] || 0) + l.estimatedHours; });
     const subjectSummary = Object.entries(subjectHours).map(([s, h]) => `  - ${s}: ${h}시간`).join('\n') || '  없음';
@@ -605,8 +620,8 @@ ${recentChat}
 ## 💬 지도 시 주의사항
 원장/강사가 특별히 신경써야 할 포인트`;
 
-    const result = await model.generateContent(prompt);
-    res.json({ studentName: student.name, grade: student.grade, analysis: result.response.text(), generatedAt: new Date().toISOString() });
+    const analysis = await callAI({ userMessage: prompt });
+    res.json({ studentName: student.name, grade: student.grade, analysis, generatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('AI 분석 오류:', err.message);
     res.status(500).json({ error: 'AI 분석 중 오류가 발생했습니다.' });
