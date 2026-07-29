@@ -408,36 +408,61 @@
     if (!list) return;
     list.innerHTML = '<p class="empty-text" style="text-align:center;padding-top:40px;color:#aab0bf">불러오는 중...</p>';
     try {
-      const { data, error } = await window.sb.from('reports')
-        .select('id,major,content,created_at')
-        .eq('student_id', me.sid)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      if (!data || !data.length) {
-        list.innerHTML = '<p class="empty-text" style="text-align:center;padding-top:40px;color:#aab0bf">아직 발행된 리포트가 없어요.</p>';
+      const [reportsRes, consultsRes] = await Promise.all([
+        window.sb.from('reports').select('id,major,content,created_at').eq('student_id', me.sid).order('created_at', { ascending: false }),
+        window.sb.from('consults').select('id,date,content,strength,weakness,next_goal,counselor,created_at').eq('student_id', me.sid).order('date', { ascending: false }),
+      ]);
+      if (reportsRes.error) throw reportsRes.error;
+      if (consultsRes.error) throw consultsRes.error;
+      const reports = reportsRes.data || [];
+      const consults = consultsRes.data || [];
+      if (!reports.length && !consults.length) {
+        list.innerHTML = '<p class="empty-text" style="text-align:center;padding-top:40px;color:#aab0bf">아직 상담 기록이 없어요.</p>';
         return;
       }
-      // 날짜별 그룹핑
-      const groups = {};
-      data.forEach(r => {
-        const d = r.created_at.slice(0, 10);
-        (groups[d] = groups[d] || []).push(r);
-      });
-      list.innerHTML = Object.entries(groups).map(([date, reports]) => `
-        <div class="rp-date-group">
-          <div class="rp-date-label">${date}</div>
-          ${reports.map(r => {
-            const t = r.created_at.slice(11, 16);
-            return `<div class="rp-card">
-              <div class="rp-card-header">
-                <span class="rp-major-badge">${escHtml(r.major)}</span>
-                <span class="rp-time">${t}</span>
-              </div>
-              <div class="rp-content" id="rpc-${r.id}">${escHtml(r.content)}</div>
-              <button class="rp-expand-btn" data-id="${r.id}">더 보기</button>
-            </div>`;
-          }).join('')}
-        </div>`).join('');
+
+      let html = '';
+
+      if (consults.length) {
+        html += `<div class="rp-date-label" style="margin-top:0">상담 기록</div>` + consults.map(c => `
+          <div class="rp-card">
+            <div class="rp-card-header">
+              <span class="rp-major-badge" style="background:#eef2ff;color:#6366f1">${escHtml(c.date || '')}</span>
+              ${c.counselor ? `<span class="rp-time">${escHtml(c.counselor)}</span>` : ''}
+            </div>
+            ${c.content ? `<div style="font-size:13.5px;color:#333;line-height:1.7;white-space:pre-wrap;margin-bottom:6px"><b>내용</b> · ${escHtml(c.content)}</div>` : ''}
+            ${c.strength ? `<div style="font-size:13.5px;color:#10b981;line-height:1.7;white-space:pre-wrap;margin-bottom:6px"><b>강점</b> · ${escHtml(c.strength)}</div>` : ''}
+            ${c.weakness ? `<div style="font-size:13.5px;color:#e2574c;line-height:1.7;white-space:pre-wrap;margin-bottom:6px"><b>약점</b> · ${escHtml(c.weakness)}</div>` : ''}
+            ${c.next_goal ? `<div style="font-size:13.5px;color:#3b82f6;line-height:1.7;white-space:pre-wrap"><b>다음 목표</b> · ${escHtml(c.next_goal)}</div>` : ''}
+          </div>`).join('');
+      }
+
+      if (reports.length) {
+        // 날짜별 그룹핑
+        const groups = {};
+        reports.forEach(r => {
+          const d = r.created_at.slice(0, 10);
+          (groups[d] = groups[d] || []).push(r);
+        });
+        html += `<div class="rp-date-label" style="margin-top:20px">AI 컨설팅 리포트</div>` +
+          Object.entries(groups).map(([date, list]) => `
+            <div class="rp-date-group">
+              <div class="rp-date-label">${date}</div>
+              ${list.map(r => {
+                const t = r.created_at.slice(11, 16);
+                return `<div class="rp-card">
+                  <div class="rp-card-header">
+                    <span class="rp-major-badge">${escHtml(r.major)}</span>
+                    <span class="rp-time">${t}</span>
+                  </div>
+                  <div class="rp-content" id="rpc-${r.id}">${escHtml(r.content)}</div>
+                  <button class="rp-expand-btn" data-id="${r.id}">더 보기</button>
+                </div>`;
+              }).join('')}
+            </div>`).join('');
+      }
+
+      list.innerHTML = html;
       list.querySelectorAll('.rp-expand-btn').forEach(btn => {
         const content = document.getElementById('rpc-' + btn.dataset.id);
         if (content && content.scrollHeight <= content.clientHeight + 4) btn.style.display = 'none';
