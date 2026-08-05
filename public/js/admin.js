@@ -28,7 +28,7 @@
   const tabBtns = document.querySelectorAll('.tab-btn');
   const panels = {
     attendance: $('tabAttendance'), leave: $('tabLeaveMgmt'), study: $('tabStudy'),
-    analysis: $('tabAnalysis'), students: $('tabStudents'),
+    analysis: $('tabAnalysis'), students: $('tabStudents'), accounts: $('tabAccounts'),
   };
   tabBtns.forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.tab;
@@ -39,6 +39,7 @@
     if (t === 'study')      loadStudy();
     if (t === 'analysis')   loadConsultStudents();
     if (t === 'students')   loadStudents();
+    if (t === 'accounts')   loadAccounts();
   }));
 
   // ═══════════════ 출석 관리 ═══════════════
@@ -862,6 +863,65 @@
     deleteModal.classList.remove('show');
     loadStudents();
   });
+
+  // ═══════════════ 계정 관리 (원장/부원장/튜터) ═══════════════
+  async function loadAccounts() {
+    const list = $('accountsList');
+    if (!list) return;
+    list.innerHTML = '<p class="empty-text">불러오는 중...</p>';
+    const { data, error } = await sb.rpc('list_admin_accounts');
+    if (error) { list.innerHTML = `<p class="empty-text" style="color:#e2574c">오류: ${esc(error.message)}</p>`; return; }
+    const rows = data || [];
+    if (!rows.length) { list.innerHTML = '<p class="empty-text">계정이 없습니다.</p>'; return; }
+    const roleColor = r => r === '원장' ? '#3b82f6' : r === '부원장' ? '#8b5cf6' : '#10b981';
+    list.innerHTML = rows.map(a => `
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #eceef4;border-radius:12px;padding:14px 16px;margin-bottom:8px">
+        <div>
+          <span style="font-weight:700;font-size:14px">${esc(a.name)}</span>
+          <span style="font-size:11px;font-weight:700;color:${roleColor(a.role)};background:${roleColor(a.role)}20;padding:2px 8px;border-radius:999px;margin-left:8px">${esc(a.role)}</span>
+        </div>
+        <button class="btn-ghost-sm acc-edit-btn" data-id="${esc(a.id)}" data-name="${esc(a.name)}" data-role="${esc(a.role)}">수정</button>
+      </div>`).join('');
+    list.querySelectorAll('.acc-edit-btn').forEach(b => b.addEventListener('click', () =>
+      showAccountEditModal(b.dataset.id, b.dataset.name, b.dataset.role)));
+  }
+
+  function showAccountEditModal(id, name, role) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:22px;max-width:340px;width:90%">
+      <h3 style="margin:0 0 16px;font-size:16px;font-weight:800;color:#1f2430">${esc(role)} 계정 수정</h3>
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input class="form-input" id="accEditName" type="text" value="${esc(name)}" maxlength="20" />
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">새 PIN (4자리)</label>
+        <input class="form-input" id="accEditPin" type="text" placeholder="0000" maxlength="4" pattern="\\d{4}" inputmode="numeric" />
+        <p class="form-hint">비워두면 기존 PIN 유지</p>
+      </div>
+      <p class="form-error" id="accEditError"></p>
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="modal-btn modal-btn--cancel" id="accEditCancel">취소</button>
+        <button class="modal-btn modal-btn--save" id="accEditSave">저장</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#accEditCancel').addEventListener('click', close);
+    overlay.querySelector('#accEditSave').addEventListener('click', async () => {
+      const newName = overlay.querySelector('#accEditName').value.trim();
+      const newPin = overlay.querySelector('#accEditPin').value.trim();
+      const errEl = overlay.querySelector('#accEditError');
+      if (!newName) { errEl.textContent = '이름을 입력해주세요.'; return; }
+      if (newPin && !/^\d{4}$/.test(newPin)) { errEl.textContent = 'PIN은 숫자 4자리여야 합니다.'; return; }
+      const { error } = await sb.rpc('update_admin_account', { p_id: id, p_name: newName, p_pin: newPin || null });
+      if (error) { errEl.textContent = '저장 실패: ' + error.message; return; }
+      close();
+      loadAccounts();
+    });
+  }
 
   // 초기 로드 (기본 탭: 출석)
   loadAttendance();
