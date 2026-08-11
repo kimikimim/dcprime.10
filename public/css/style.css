@@ -87,7 +87,7 @@ img { display: block; }
    ============================================================ */
 .chat-header, .admin-header {
   background: var(--white); border-bottom: 1px solid var(--gray-6);
-  padding: env(safe-area-inset-top) 0 0; flex-shrink: 0; position: sticky; top: 0; z-index: 50;
+  padding: env(safe-area-inset-top) 0 0; flex-shrink: 0; position: sticky; top: 0; z-index: 150;
 }
 .chat-header-inner, .admin-header-inner {
   display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 18px;
