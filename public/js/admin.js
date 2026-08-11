@@ -30,10 +30,12 @@
     attendance: $('tabAttendance'), leave: $('tabLeaveMgmt'), study: $('tabStudy'),
     analysis: $('tabAnalysis'), students: $('tabStudents'), accounts: $('tabAccounts'),
   };
+  const tabBar = document.querySelector('.tab-bar');
   tabBtns.forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.tab;
     tabBtns.forEach(x => x.classList.toggle('active', x.dataset.tab === t));
     Object.entries(panels).forEach(([k, p]) => p?.classList.toggle('active', k === t));
+    tabBar?.classList.remove('open');
     if (t === 'attendance') loadAttendance();
     if (t === 'leave')      loadLeaveMgmt();
     if (t === 'study')      loadStudy();
@@ -41,6 +43,16 @@
     if (t === 'students')   loadStudents();
     if (t === 'accounts')   loadAccounts();
   }));
+
+  document.getElementById('hamburgerBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    tabBar?.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (tabBar?.classList.contains('open') && !tabBar.contains(e.target) && e.target.id !== 'hamburgerBtn') {
+      tabBar.classList.remove('open');
+    }
+  });
 
   // ═══════════════ 출석 관리 ═══════════════
   const startOfWeek = d => { const x = new Date(d); const dy = (x.getDay()+6)%7; x.setDate(x.getDate()-dy); x.setHours(0,0,0,0); return x; };
