@@ -114,30 +114,57 @@ img { display: block; }
 .hamburger-btn { display: none; width: 36px; height: 36px; border-radius: 50%; align-items: center; justify-content: center; color: var(--gray-2); background: none; border: none; cursor: pointer; }
 .hamburger-btn:active { background: var(--gray-6); }
 
+/* 메뉴 뒷배경 (JS로 동적 생성) */
+.menu-backdrop { display: none; }
+
+.tab-bar-logout { display: none; }
+
 @media (max-width: 767px) {
   .chat-header-inner, .admin-header-inner { position: relative; }
   .hamburger-btn { display: flex; }
   .tab-bar { display: none; }
+  .admin-header-right #logoutBtn, .chat-header-right #logoutBtn { display: none; }
+
+  .menu-backdrop.show {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 100;
+    animation: menuFadeIn .18s ease;
+  }
+
   .tab-bar.open {
     display: flex; flex-direction: column;
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,.5);
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 76%; max-width: 300px;
+    background: var(--white);
     border-top: none;
-    z-index: 100;
+    z-index: 101;
     padding-top: calc(56px + env(safe-area-inset-top));
-    animation: menuFadeIn .18s ease;
+    box-shadow: -6px 0 20px rgba(0,0,0,.18);
+    animation: drawerSlideIn .2s ease;
+    overflow-y: auto;
   }
   .tab-bar.open .tab-btn {
     background: var(--white);
-    height: 60px; justify-content: flex-start; padding: 0 24px; gap: 14px;
+    height: 58px; justify-content: flex-start; padding: 0 22px; gap: 14px;
     font-size: 16px; font-weight: 600; color: var(--black);
     border-bottom: 1px solid var(--gray-7); border-left: 4px solid transparent;
     flex-shrink: 0;
   }
   .tab-bar.open .tab-btn svg { width: 20px; height: 20px; }
   .tab-bar.open .tab-btn.active { color: var(--blue); font-weight: 800; border-left-color: var(--blue); background: var(--gray-8); }
+
+  .tab-bar.open .tab-bar-logout {
+    display: flex; align-items: center; gap: 14px;
+    height: 58px; padding: 0 22px; margin-top: auto;
+    font-size: 16px; font-weight: 600; color: #e2574c;
+    border: none; border-top: 1px solid var(--gray-7); background: none;
+    width: 100%; text-align: left; cursor: pointer;
+  }
 }
 @keyframes menuFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drawerSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
 /* 탭 패널 */
 .tab-panel { display: none; flex: 1; overflow-y: auto; }

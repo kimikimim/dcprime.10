@@ -31,11 +31,17 @@
     analysis: $('tabAnalysis'), students: $('tabStudents'), accounts: $('tabAccounts'),
   };
   const tabBar = document.querySelector('.tab-bar');
+  const menuBackdrop = document.createElement('div');
+  menuBackdrop.className = 'menu-backdrop';
+  document.body.appendChild(menuBackdrop);
+  const closeMenu = () => { tabBar?.classList.remove('open'); menuBackdrop.classList.remove('show'); };
+  const openMenu  = () => { tabBar?.classList.add('open'); menuBackdrop.classList.add('show'); };
+
   tabBtns.forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.tab;
     tabBtns.forEach(x => x.classList.toggle('active', x.dataset.tab === t));
     Object.entries(panels).forEach(([k, p]) => p?.classList.toggle('active', k === t));
-    tabBar?.classList.remove('open');
+    closeMenu();
     if (t === 'attendance') loadAttendance();
     if (t === 'leave')      loadLeaveMgmt();
     if (t === 'study')      loadStudy();
@@ -46,12 +52,11 @@
 
   document.getElementById('hamburgerBtn')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    tabBar?.classList.toggle('open');
+    tabBar?.classList.contains('open') ? closeMenu() : openMenu();
   });
-  document.addEventListener('click', (e) => {
-    if (tabBar?.classList.contains('open') && !tabBar.contains(e.target) && e.target.id !== 'hamburgerBtn') {
-      tabBar.classList.remove('open');
-    }
+  menuBackdrop.addEventListener('click', closeMenu);
+  document.getElementById('hamburgerLogoutBtn')?.addEventListener('click', () => {
+    document.getElementById('logoutBtn')?.click();
   });
 
   // ═══════════════ 출석 관리 ═══════════════

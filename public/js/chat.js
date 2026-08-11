@@ -4,11 +4,17 @@
   const tabPanels = { chat: document.getElementById('tabChat'), study: document.getElementById('tabStudy'), timetable: document.getElementById('tabTimetable'), goals: document.getElementById('tabGoals'), leave: document.getElementById('tabLeave'), reports: document.getElementById('tabReports') };
 
   const tabBar = document.querySelector('.tab-bar');
+  const menuBackdrop = document.createElement('div');
+  menuBackdrop.className = 'menu-backdrop';
+  document.body.appendChild(menuBackdrop);
+  const closeMenu = () => { tabBar?.classList.remove('open'); menuBackdrop.classList.remove('show'); };
+  const openMenu  = () => { tabBar?.classList.add('open'); menuBackdrop.classList.add('show'); };
+
   tabBtns.forEach(btn => btn.addEventListener('click', () => {
     const t = btn.dataset.tab;
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === t));
     Object.entries(tabPanels).forEach(([k, p]) => p && p.classList.toggle('active', k === t));
-    tabBar?.classList.remove('open');
+    closeMenu();
     if (t === 'study') loadStudyLogs();
     if (t === 'goals') loadGoals();
     if (t === 'reports') loadReports();
@@ -17,12 +23,11 @@
 
   document.getElementById('hamburgerBtn')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    tabBar?.classList.toggle('open');
+    tabBar?.classList.contains('open') ? closeMenu() : openMenu();
   });
-  document.addEventListener('click', (e) => {
-    if (tabBar?.classList.contains('open') && !tabBar.contains(e.target) && e.target.id !== 'hamburgerBtn') {
-      tabBar.classList.remove('open');
-    }
+  menuBackdrop.addEventListener('click', closeMenu);
+  document.getElementById('hamburgerLogoutBtn')?.addEventListener('click', () => {
+    document.getElementById('logoutBtn')?.click();
   });
 
   // ══════════════════════════════════════════════
