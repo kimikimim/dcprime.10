@@ -128,15 +128,14 @@ img { display: block; }
   .menu-backdrop.show {
     display: block;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,.5);
+    background: transparent;
     z-index: 100;
-    animation: menuFadeIn .18s ease;
   }
 
   .tab-bar.open {
     display: flex; flex-direction: column;
     position: fixed; top: 0; right: 0; bottom: 0;
-    width: 64%; max-width: 240px;
+    width: 52%; max-width: 190px;
     background: var(--white);
     border-top: none;
     z-index: 101;
@@ -147,23 +146,22 @@ img { display: block; }
   }
   .tab-bar.open .tab-btn {
     background: var(--white);
-    height: 46px; justify-content: flex-start; padding: 0 18px; gap: 10px;
-    font-size: 14px; font-weight: 600; color: var(--black);
+    height: 34px; justify-content: flex-start; padding: 0 14px; gap: 8px;
+    font-size: 12.5px; font-weight: 600; color: var(--black);
     border-bottom: 1px solid var(--gray-7); border-left: 3px solid transparent;
     flex-shrink: 0;
   }
-  .tab-bar.open .tab-btn svg { width: 16px; height: 16px; }
+  .tab-bar.open .tab-btn svg { width: 13px; height: 13px; }
   .tab-bar.open .tab-btn.active { color: var(--blue); font-weight: 800; border-left-color: var(--blue); background: var(--gray-8); }
 
   .tab-bar.open .tab-bar-logout {
-    display: flex; align-items: center; gap: 10px;
-    height: 46px; padding: 0 18px; margin-top: auto;
-    font-size: 14px; font-weight: 600; color: #e2574c;
+    display: flex; align-items: center; gap: 8px;
+    height: 34px; padding: 0 14px; margin-top: auto;
+    font-size: 12.5px; font-weight: 600; color: #e2574c;
     border: none; border-top: 1px solid var(--gray-7); background: none;
     width: 100%; text-align: left; cursor: pointer;
   }
 }
-@keyframes menuFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes drawerSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
 /* 탭 패널 */
