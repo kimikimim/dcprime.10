@@ -457,9 +457,21 @@
   $('refreshStudyBtn')?.addEventListener('click', loadStudy);
 
   // 학습현황: 전체 학생 인증사진 + 코멘트 일괄 다운로드
+  // 기본값: 최근 7일 (전체 기간을 한꺼번에 받으면 메모리 부족으로 다운로드가 깨짐)
+  (function initBulkDlDates() {
+    const to = $('bulkDlTo'), from = $('bulkDlFrom');
+    if (!to || !from) return;
+    const t = new Date();
+    to.value = fmt(t);
+    const f = new Date(t); f.setDate(f.getDate() - 6);
+    from.value = fmt(f);
+  })();
+
   $('downloadAllPhotosBtn')?.addEventListener('click', async () => {
     const btn = $('downloadAllPhotosBtn');
     const label = btn.innerHTML;
+    const from = $('bulkDlFrom')?.value, to = $('bulkDlTo')?.value;
+    if (!from || !to) { alert('다운로드 기간을 선택해주세요.'); return; }
     btn.disabled = true; btn.textContent = '준비 중...';
     try {
       await fetchStudents();
@@ -469,8 +481,13 @@
       const ids = list.map(s => s.id);
       if (!ids.length) { alert('학생이 없습니다.'); return; }
       const { data: logs } = await sb.from('study_logs').select('*')
-        .in('student_id', ids).order('date', { ascending: true }).order('created_at', { ascending: true });
-      if (!logs || !logs.length) { alert('학습 인증 기록이 없습니다.'); return; }
+        .in('student_id', ids).gte('date', from).lte('date', to)
+        .order('date', { ascending: true }).order('created_at', { ascending: true });
+      if (!logs || !logs.length) { alert('해당 기간에 학습 인증 기록이 없습니다.'); return; }
+      const photoTotal = logs.filter(l => l.image_path).length;
+      if (photoTotal > 300 && !confirm(`사진이 ${photoTotal}장이라 시간이 오래 걸리고 다운로드가 실패할 수 있어요. 기간을 줄이는 걸 추천해요. 그래도 진행할까요?`)) {
+        return;
+      }
 
       const byStudent = {};
       logs.forEach(l => { (byStudent[l.student_id] ||= []).push(l); });
