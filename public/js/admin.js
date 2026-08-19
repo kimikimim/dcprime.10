@@ -510,6 +510,53 @@
     }
   });
 
+  // 학습현황: 학생별 날짜별 목표 이행률 엑셀 다운로드
+  $('downloadGoalsBtn')?.addEventListener('click', async () => {
+    const btn = $('downloadGoalsBtn');
+    const label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = '생성 중...';
+    try {
+      await fetchStudents();
+      const campus = $('studyCampusFilter').value;
+      const list = studentsCache.filter(s => !campus || s.campus === campus);
+      const ids = list.map(s => s.id);
+      if (!ids.length) { alert('학생이 없습니다.'); return; }
+      const { data: goals } = await sb.from('goals').select('student_id,date,done').in('student_id', ids);
+      if (!goals || !goals.length) { alert('목표 기록이 없습니다.'); return; }
+
+      const byStudent = {};
+      goals.forEach(g => {
+        const byDate = byStudent[g.student_id] ||= {};
+        const d = byDate[g.date] ||= { total: 0, done: 0 };
+        d.total++; if (g.done) d.done++;
+      });
+
+      const rows = [['학생', '캠퍼스', '날짜', '목표설정', '목표이행', '이행률']];
+      let grandTotal = 0, grandDone = 0;
+      list.forEach(s => {
+        const byDate = byStudent[s.id];
+        if (!byDate) return;
+        let sTotal = 0, sDone = 0;
+        Object.keys(byDate).sort().forEach(date => {
+          const d = byDate[date];
+          rows.push([s.name, s.campus || '', date, d.total, d.done, d.total ? Math.round(d.done / d.total * 100) + '%' : '0%']);
+          sTotal += d.total; sDone += d.done;
+        });
+        rows.push([s.name, s.campus || '', '합계', sTotal, sDone, sTotal ? Math.round(sDone / sTotal * 100) + '%' : '0%']);
+        grandTotal += sTotal; grandDone += sDone;
+      });
+      rows.push(['전체', '', '합계', grandTotal, grandDone, grandTotal ? Math.round(grandDone / grandTotal * 100) + '%' : '0%']);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 10 }, { wch: 7 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 9 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '목표이행률');
+      XLSX.writeFile(wb, `목표이행률_${todayStr()}.xlsx`);
+    } finally {
+      btn.disabled = false; btn.innerHTML = label;
+    }
+  });
+
   // ═══════════════ 상담 ═══════════════
   // 키는 워커에서 받아오고(깃엔 없음), Gemini 호출은 브라우저(한국 IP)에서 직접 한다.
   // 워커 egress IP가 Gemini 미지원 지역으로 잡혀 서버사이드 프록시가 막히기 때문.
