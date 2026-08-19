@@ -450,6 +450,59 @@
   $('studyCampusFilter')?.addEventListener('change', loadStudy);
   $('refreshStudyBtn')?.addEventListener('click', loadStudy);
 
+  // 학습현황: 전체 학생 인증사진 + 코멘트 일괄 다운로드
+  $('downloadAllPhotosBtn')?.addEventListener('click', async () => {
+    const btn = $('downloadAllPhotosBtn');
+    const label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = '준비 중...';
+    try {
+      await fetchStudents();
+      const campus = $('studyCampusFilter').value;
+      const list = studentsCache.filter(s => !campus || s.campus === campus);
+      const nameMap = new Map(list.map(s => [s.id, s.name]));
+      const ids = list.map(s => s.id);
+      if (!ids.length) { alert('학생이 없습니다.'); return; }
+      const { data: logs } = await sb.from('study_logs').select('*')
+        .in('student_id', ids).order('date', { ascending: true }).order('created_at', { ascending: true });
+      if (!logs || !logs.length) { alert('학습 인증 기록이 없습니다.'); return; }
+
+      const byStudent = {};
+      logs.forEach(l => { (byStudent[l.student_id] ||= []).push(l); });
+
+      const zip = new JSZip();
+      let photoCount = 0;
+      for (const [sid, arr] of Object.entries(byStudent)) {
+        const name = nameMap.get(sid) || sid;
+        const counts = {};
+        const commentLines = [];
+        for (const l of arr) {
+          commentLines.push(`[${l.date}] ${l.subject || '-'} · ${l.estimated_hours ?? '-'}시간\n${l.summary || '(메모 없음)'}\n`);
+          if (l.image_path) {
+            try {
+              const res = await fetch(l.image_path);
+              const blob = await res.blob();
+              const ext = (l.image_path.split('.').pop() || 'jpg').split('?')[0];
+              counts[l.date] = (counts[l.date] || 0) + 1;
+              zip.file(`${name}/${l.date}_${counts[l.date]}.${ext}`, blob);
+              photoCount++;
+            } catch (e) { console.error('이미지 로드 실패', l.image_path, e); }
+          }
+        }
+        zip.file(`${name}/코멘트.txt`, commentLines.join('\n'));
+      }
+
+      btn.textContent = 'ZIP 생성 중...';
+      const out = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(out);
+      const a = document.createElement('a');
+      a.href = url; a.download = `학습인증_전체_${todayStr()}.zip`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      btn.disabled = false; btn.innerHTML = label;
+    }
+  });
+
   // ═══════════════ 상담 ═══════════════
   // 키는 워커에서 받아오고(깃엔 없음), Gemini 호출은 브라우저(한국 IP)에서 직접 한다.
   // 워커 egress IP가 Gemini 미지원 지역으로 잡혀 서버사이드 프록시가 막히기 때문.
