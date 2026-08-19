@@ -419,10 +419,10 @@
           </div>
         </div>`).join('');
 
-    $('zipBtn')?.addEventListener('click', () => downloadZip(name, photoLogs));
+    $('zipBtn')?.addEventListener('click', () => downloadZip(name, photoLogs, logs));
   }
 
-  async function downloadZip(name, logs) {
+  async function downloadZip(name, logs, allLogs) {
     const btn = $('zipBtn');
     btn.disabled = true; btn.textContent = 'ZIP 생성 중...';
     try {
@@ -437,6 +437,11 @@
           zip.file(`${name}_${l.date}_${counts[l.date]}.${ext}`, blob);
         } catch (e) { console.error('이미지 로드 실패', l.image_path, e); }
       }
+      const commentSrc = (allLogs || logs).slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+      const commentLines = commentSrc.map(l =>
+        `[${l.date}] ${l.subject || '-'} · ${l.estimated_hours ?? '-'}시간\n${l.summary || '(메모 없음)'}\n`
+      );
+      zip.file('코멘트.txt', commentLines.join('\n'));
       const out = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(out);
       const a = document.createElement('a');
