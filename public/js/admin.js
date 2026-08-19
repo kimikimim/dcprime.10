@@ -431,6 +431,7 @@
       for (const l of logs) {
         try {
           const res = await fetch(l.image_path);
+          if (!res.ok) { console.warn('이미지 없음(스킵)', l.image_path, res.status); continue; }
           const blob = await res.blob();
           const ext = (l.image_path.split('.').pop() || 'jpg').split('?')[0];
           counts[l.date] = (counts[l.date] || 0) + 1;
@@ -485,6 +486,7 @@
           if (l.image_path) {
             try {
               const res = await fetch(l.image_path);
+              if (!res.ok) { console.warn('이미지 없음(스킵)', l.image_path, res.status); continue; }
               const blob = await res.blob();
               const ext = (l.image_path.split('.').pop() || 'jpg').split('?')[0];
               counts[l.date] = (counts[l.date] || 0) + 1;
