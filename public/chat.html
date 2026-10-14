@@ -171,14 +171,14 @@
 
       <div class="tt-setup">
         <div class="tt-field">
-          <span class="tt-label">스터디카페</span>
+          <span class="tt-label">재원하고 있는 곳</span>
           <div class="tt-campus">
             <button class="tt-campus-btn" data-campus="능곡">능곡</button>
             <button class="tt-campus-btn" data-campus="장곡">장곡</button>
           </div>
         </div>
         <div class="tt-field">
-          <span class="tt-label">좌석</span>
+          <span class="tt-label">좌석 <small style="font-weight:500;color:#aab0bf">(대치 전용 스카 이용시에만 기재)</small></span>
           <div class="tt-seatwrap"><input id="ttSeat" class="tt-seat" type="number" min="1" inputmode="numeric" placeholder="번호" /><span>번</span></div>
         </div>
       </div>
@@ -366,6 +366,7 @@
     }, true);
 
     const SUBJECTS = [
+      { key: '학원자습실', color: '#14b8a6' },
       { key: '스카', color: '#3b82f6' },
       { key: '식사', color: '#f59e0b' },
       { key: '학원수업', color: '#10b981' },
@@ -387,7 +388,7 @@
     const submitBtn = document.getElementById('ttSubmit');
     if (!grid) return;
 
-    let sel = '스카';
+    let sel = '학원자습실';
     const today = new Date();           // 학생은 오늘만 편집 가능
     const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const TODAY = ymd(today);
@@ -485,8 +486,6 @@
     });
     // 오늘 시간표 제출 (= 1차 출석)
     submitBtn.addEventListener('click', async () => {
-      if (!row.campus) { alert('스터디카페(능곡/장곡)를 선택해주세요.'); return; }
-      if (!seatEl.value) { alert('좌석 번호를 입력해주세요.'); return; }
       row.submitted = true;
       await persist({ submitted_at: new Date().toISOString() });
       renderSetup();

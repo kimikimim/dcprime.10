@@ -332,7 +332,7 @@
           <span>목표 작성 ${glTime ? esc(glTime.timeTxt) + (glTime.isLate ? lateBadge : '') : '—'}</span>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          ${tt?.submitted ? `<span style="font-size:12px;color:#10b981;background:#e7f7f0;padding:3px 10px;border-radius:999px">제출완료 (좌석 ${esc(tt.seat||'-')})</span>` : '<span style="font-size:12px;color:#9098a8">미제출</span>'}
+          ${tt?.submitted ? `<span style="font-size:12px;color:#10b981;background:#e7f7f0;padding:3px 10px;border-radius:999px">제출완료${tt.seat ? ` (좌석 ${esc(tt.seat)})` : ''}</span>` : '<span style="font-size:12px;color:#9098a8">미제출</span>'}
           <button class="btn-ghost-sm tt-view-btn" data-id="${s.id}" data-name="${esc(s.name)}">시간표 보기</button>
           <button class="btn-ghost-sm goals-view-btn" data-id="${s.id}" data-name="${esc(s.name)}">목표 보기</button>
           <button class="btn-ghost-sm photos-btn" data-id="${s.id}" data-name="${esc(s.name)}" style="margin-left:auto">인증사진 모아보기</button>
@@ -347,7 +347,7 @@
   }
 
   // 시간표 모달
-  const TT_COLORS = { '스카':'#3b82f6','식사':'#f59e0b','학원수업':'#10b981','기타':'#8b5cf6','국어':'#e2574c','영어':'#3b82f6','수학':'#10b981','과학':'#f59e0b' };
+  const TT_COLORS = { '학원자습실':'#14b8a6','스카':'#3b82f6','식사':'#f59e0b','학원수업':'#10b981','기타':'#8b5cf6','국어':'#e2574c','영어':'#3b82f6','수학':'#10b981','과학':'#f59e0b' };
   const ttSlots = (() => { const a = []; for (let m=480;m<1440;m+=30){ const h=Math.floor(m/60),mm=m%60; a.push(`${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`); } return a; })();
 
   function showTimetableModal(name, slots) {
