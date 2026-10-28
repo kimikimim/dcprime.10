@@ -574,6 +574,81 @@
     }
   });
 
+  // 학습현황: 오늘 계획 출력 (학생별 A4 1장: 재원 장소/좌석/시간표/목표) — 흑백 인쇄 기준
+  $('printPlanBtn')?.addEventListener('click', async () => {
+    const btn = $('printPlanBtn');
+    const label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = '준비 중...';
+    try {
+      await fetchStudents();
+      const campus = $('studyCampusFilter').value;
+      const list = studentsCache.filter(s => !campus || s.campus === campus);
+      const ids = list.map(s => s.id);
+      if (!ids.length) { alert('학생이 없습니다.'); return; }
+      const today = todayStr();
+      const [ttRes, glRes] = await Promise.all([
+        sb.from('timetables').select('student_id,slots,campus,seat').eq('date', today).in('student_id', ids),
+        sb.from('goals').select('student_id,text,sort_order,created_at').eq('date', today).in('student_id', ids)
+          .order('sort_order').order('created_at'),
+      ]);
+      const ttMap = new Map((ttRes.data || []).map(t => [t.student_id, t]));
+      const goalMap = {};
+      (glRes.data || []).forEach(g => { (goalMap[g.student_id] ||= []).push(g); });
+
+      const targets = list.filter(s => {
+        const slots = ttMap.get(s.id)?.slots || {};
+        return Object.keys(slots).length || (goalMap[s.id] || []).length;
+      });
+      if (!targets.length) { alert('오늘 작성한 시간표/목표가 있는 학생이 없습니다.'); return; }
+
+      const d = new Date();
+      const dateTxt = `${today} (${['일','월','화','수','목','금','토'][d.getDay()]})`;
+      const half = Math.ceil(ttSlots.length / 2);
+      const cellTxt = v => { if (!v) return ''; const [b, ...r] = v.split(':'); return r.length ? `${b}(${r.join(':')})` : b; };
+      const col = (slots, from, to) => ttSlots.slice(from, to).map(t => {
+        const v = slots[t];
+        return `<tr><td class="pp-time">${t}</td><td class="pp-cell${v ? ' pp-fill' : ''}">${esc(cellTxt(v))}</td></tr>`;
+      }).join('');
+
+      const sheets = targets.map(s => {
+        const tt = ttMap.get(s.id) || {};
+        const slots = tt.slots || {};
+        const goals = goalMap[s.id] || [];
+        const where = tt.campus || '';
+        const seat = tt.seat || '';
+        return `<section class="pp-sheet">
+          <div class="pp-head">
+            <div class="pp-title">${esc(s.name)} <span>${esc(s.grade || '')}</span></div>
+            <div class="pp-date">${esc(dateTxt)}</div>
+          </div>
+          <div class="pp-info">
+            <div><b>재원하고 있는 곳</b> ${esc(where) || '&nbsp;'}</div>
+            <div><b>좌석</b> ${esc(seat) || '&nbsp;'}</div>
+          </div>
+          <h3 class="pp-h">오늘 시간표</h3>
+          <div class="pp-tt">
+            <table>${col(slots, 0, half)}</table>
+            <table>${col(slots, half, ttSlots.length)}</table>
+          </div>
+          <h3 class="pp-h">오늘의 목표</h3>
+          <ol class="pp-goals">${goals.length
+            ? goals.map(g => `<li><span class="pp-box"></span>${esc(g.text)}</li>`).join('')
+            : '<li class="pp-none">작성한 목표 없음</li>'}</ol>
+        </section>`;
+      }).join('');
+
+      let root = $('printRoot');
+      if (!root) { root = document.createElement('div'); root.id = 'printRoot'; document.body.appendChild(root); }
+      root.innerHTML = sheets;
+      document.body.classList.add('printing');
+      const done = () => { document.body.classList.remove('printing'); root.innerHTML = ''; window.removeEventListener('afterprint', done); };
+      window.addEventListener('afterprint', done);
+      window.print();
+    } finally {
+      btn.disabled = false; btn.innerHTML = label;
+    }
+  });
+
   // ═══════════════ 상담 ═══════════════
   // 키는 워커에서 받아오고(깃엔 없음), Gemini 호출은 브라우저(한국 IP)에서 직접 한다.
   // 워커 egress IP가 Gemini 미지원 지역으로 잡혀 서버사이드 프록시가 막히기 때문.

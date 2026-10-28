@@ -571,3 +571,32 @@ img { display: block; }
 @media (max-width: 400px) {
   .study-hours-grid { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* ── 오늘 계획 출력 (관리자, A4 1학생 1장, 흑백 기준) ── */
+#printRoot { display: none; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body.printing { height: auto !important; overflow: visible !important; background: #fff !important; display: block !important; }
+  html:has(body.printing) { height: auto !important; overflow: visible !important; }
+  body.printing > *:not(#printRoot) { display: none !important; }
+  body.printing #printRoot { display: block; color: #000; font-family: 'Noto Sans KR', sans-serif; }
+  .pp-sheet { page-break-after: always; break-after: page; break-inside: avoid; }
+  .pp-sheet:last-child { page-break-after: auto; break-after: auto; }
+  .pp-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 4px; }
+  .pp-title { font-size: 20px; font-weight: 800; }
+  .pp-title span { font-size: 13px; font-weight: 500; margin-left: 6px; }
+  .pp-date { font-size: 13px; }
+  .pp-info { display: flex; gap: 24px; margin: 8px 0 4px; font-size: 13px; }
+  .pp-info b { margin-right: 6px; }
+  .pp-h { font-size: 14px; margin: 10px 0 4px; padding-left: 6px; border-left: 4px solid #000; }
+  .pp-tt { display: flex; gap: 8px; }
+  .pp-tt table { flex: 1; border-collapse: collapse; table-layout: fixed; }
+  .pp-tt td { border: 1px solid #000; height: 7.2mm; padding: 0 4px; font-size: 11px; }
+  .pp-time { width: 46px; text-align: center; font-weight: 600; background: #fff; }
+  .pp-fill { background: #d9d9d9; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pp-goals { margin: 0; padding: 0; list-style: none; counter-reset: g; }
+  .pp-goals li { counter-increment: g; display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.45; padding: 5px 0; border-bottom: 1px solid #999; }
+  .pp-goals li::before { content: counter(g) "."; min-width: 18px; font-weight: 700; }
+  .pp-box { flex: 0 0 13px; width: 13px; height: 13px; border: 1.5px solid #000; margin-top: 2px; }
+  .pp-none { color: #555; }
+}
